@@ -3,13 +3,9 @@ const toParam = require('change-case').paramCase;
 
 let proc;
 
-module.exports = (mochaOpts = {}, babelOpts = {}, files = []) => new Promise((resolve) => {
+module.exports = (mochaOpts = {}, babelOpts = {}, files = []) => new Promise((resolve, reject) => {
   if (proc) {
     proc.kill();
-  }
-
-  if (files.length) {
-    Object.assign(mochaOpts, { recursive: true });
   }
 
   process.env.NEUTRINO_BABEL_CONFIG = JSON.stringify(babelOpts);
@@ -24,11 +20,11 @@ module.exports = (mochaOpts = {}, babelOpts = {}, files = []) => new Promise((re
         [...argv, `--${toParam(key)}`, value];
     }, ['--require', require.resolve('./register')]);
 
-  proc = spawn(require.resolve('mocha/bin/mocha'), [...argv, ...files], {
+  proc = spawn(process.execPath, [require.resolve('mocha/bin/mocha'), ...argv, ...files], {
     cwd: process.cwd(),
     env: process.env,
     stdio: 'inherit'
   });
 
-  proc.on('close', resolve);
+  proc.on('close', code => (code !== 0 ? reject() : resolve()));
 });

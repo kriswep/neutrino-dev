@@ -2,13 +2,14 @@
 [![NPM version][npm-image]][npm-url] [![NPM downloads][npm-downloads]][npm-url] [![Join Slack][slack-image]][slack-url]
 
 `neutrino-middleware-env` is Neutrino middleware for injecting environment variable definitions into
-source code at `process.env`. Always injects `process.env.NODE_ENV`, unless overridden.
+source code at `process.env`. You can use this to make a custom environment variable (e.g. an API server backend to
+use) available inside your project. Always injects `process.env.NODE_ENV`, unless overridden.
 
 ## Requirements
 
-- Node.js v6.9+
+- Node.js v6.10+
 - Yarn or npm client
-- Neutrino v5
+- Neutrino v6
 
 ## Installation
 
@@ -32,6 +33,7 @@ source code at `process.env`. Always injects `process.env.NODE_ENV`, unless over
 and plug it into Neutrino:
 
 ```js
+// Using function middleware format
 const env = require('neutrino-middleware-env');
 
 // Use with default options
@@ -39,6 +41,22 @@ neutrino.use(env);
 
 // Usage with additional environment variables
 neutrino.use(env, ['SECRET_KEY']);
+```
+
+```js
+// Using object or array middleware format
+
+// Use with default options
+module.exports = {
+  use: ['neutrino-middleware-env']
+};
+
+// Usage with additional environment variables
+module.exports = {
+  use: [
+    ['neutrino-middleware-env', ['SECRET_KEY']]
+  ]
+};
 ```
 
 This middleware optionally accepts an array of environment variables to additionally inject into source code.
@@ -52,12 +70,14 @@ make changes.
 
 The following is a list of plugins and their identifiers which can be overridden:
 
-- `env`: Inject environment variables into source code at `process.env`.
+| Name | Description | Environments |
+| ---- | ----------- | ------------ |
+| `env` | Inject environment variables into source code at `process.env`. | all |
 
 ## Contributing
 
-This preset is part of the [neutrino-dev](https://github.com/mozilla-neutrino/neutrino-dev) repository, a monorepo
-containing all resources for developing Neutrino and its core presets. Follow the
+This middleware is part of the [neutrino-dev](https://github.com/mozilla-neutrino/neutrino-dev) repository, a monorepo
+containing all resources for developing Neutrino and its core presets and middleware. Follow the
 [contributing guide](../../contributing/README.md) for details.
 
 [npm-image]: https://img.shields.io/npm/v/neutrino-middleware-env.svg

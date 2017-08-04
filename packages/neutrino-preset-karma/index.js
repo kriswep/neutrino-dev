@@ -1,8 +1,10 @@
 const { Server } = require('karma');
 const merge = require('deepmerge');
 const { join } = require('path');
+const { omit } = require('ramda');
+const loaderMerge = require('neutrino-middleware-loader-merge');
 
-module.exports = (neutrino, tap) => {
+module.exports = (neutrino, opts = {}) => {
   const tests = join(neutrino.options.tests, '**/*_test.js');
   const sources = join(neutrino.options.source, '**/*.js*');
   const defaults = {
@@ -22,7 +24,12 @@ module.exports = (neutrino, tap) => {
       }
     },
     frameworks: ['mocha'],
-    files: [tests],
+    files: [{
+      pattern: tests,
+      watched: false,
+      included: true,
+      served: true
+    }],
     preprocessors: {
       [tests]: ['webpack'],
       [sources]: ['webpack']
@@ -38,26 +45,22 @@ module.exports = (neutrino, tap) => {
     }
   };
 
-  Object.assign(neutrino.options, {
-    karma: merge(defaults, neutrino.options.karma || {})
-  });
-
-  neutrino.on('test', ({ files, watch }) => {
-    const base = typeof tap === 'function' ?
-      tap(neutrino.options.karma) :
-      neutrino.options.karma;
-    const karma = merge(base, {
-      singleRun: !watch,
-      autoWatch: watch,
-      webpack: neutrino.config.toConfig()
+  if (neutrino.config.module.rules.has('compile')) {
+    neutrino.use(loaderMerge('compile', 'babel'), {
+      env: {
+        test: {
+          plugins: [require.resolve('babel-plugin-istanbul')]
+        }
+      }
     });
+  }
 
-    delete karma.webpack.plugins;
-
-    if (files && files.length) {
-      karma.files = files;
-    }
-
-    return new Promise(resolve => new Server(karma, resolve).start());
-  });
+  neutrino.on('test', ({ files, watch }) => new Promise((resolve, reject) =>
+    new Server(merge.all([
+      opts.override ? opts : merge(defaults, opts),
+      { singleRun: !watch, autoWatch: watch, webpack: omit(['plugins'], neutrino.config.toConfig()) },
+      files && files.length ? { files } : {}
+    ]), exitCode => (exitCode !== 0 ? reject() : resolve()))
+    .start()
+  ));
 };
